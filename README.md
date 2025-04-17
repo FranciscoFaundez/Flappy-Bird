@@ -1,0 +1,1 @@
+Programa que intenta simular el famoso juego "Flappy Bird", usando como base OpenGL.
