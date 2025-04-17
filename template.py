@@ -27,6 +27,9 @@ class Controller(pyglet.window.Window):
         self.bird_vel = 0
         # Posición del pájaro en el eje y
         self.bird_pos = 0
+        # Posición del nodo 1 y 2 del background
+        self.back1= 0
+        self.back2 = 0
 
 window = Controller(WIDTH, HEIGHT, "Tarea 2")
 
@@ -98,6 +101,23 @@ void main() {
                     position = [-0.2, 0, -0.01], # Para que el ala se vea sobre el cuerpo y en la posición correcta
                     cull_face=True
                    )
+    
+    graph.add_node("background1",
+                   attach_to="scene",
+                   mesh=quad,
+                   pipeline=pipeline,
+                   texture=Texture(root + "/assets/back.jpg"),
+                   scale = [2, 2, 0]
+
+    )
+
+    graph.add_node("background2",
+                attach_to="scene",
+                mesh=quad,
+                pipeline=pipeline,
+                texture=Texture(root + "/assets/back.jpg"),
+                scale = [2, 2, 0]
+    )
 
     @window.event
     def on_draw():
@@ -116,6 +136,8 @@ void main() {
             if symbol == key.SPACE: 
                 window.gameState = 1
                 window.bird_vel = JUMP
+    
+
 
     def update(dt):
         # El tiempo queda guardado en la variable window.time
@@ -126,14 +148,31 @@ void main() {
             window.bird_vel += GRAVITY * dt
             window.bird_pos += window.bird_vel * dt
 
-
+        # Movimiento del ala
         if (window.gameState == 1): 
             graph["wing"]["transform"] = (
                 tr.translate(0.45, 0.0, -0.01)  # Posición final + Z adelante para que el ala se vea delante del pájaro
                 @ tr.rotationZ(0.13 * np.sin(8 * window.time)) # Aleteo
                 @ tr.translate(-0.5, -0.05, 0)  # Traslado para que gire en torno a la punta del ala
                 )
-        
+
+            # Movimiento del fondo
+            speed = 0.2*dt
+            window.back1 -= speed
+            window.back2 -= speed
+
+
+            # Si alguno se va fuera, lo reposicionamos al otro lado
+            if window.back1 <= -2.0:
+                window.back1 += 4.0
+
+            if window.back2 <= -4.0:
+                window.back2 += 4.0
+
+            # Aplicar transformación
+            graph["background1"]["transform"] = tr.translate(window.back1, 0, 0)
+            graph["background2"]["transform"] = tr.translate(window.back2 + 2, 0, 0)
+            
         # Actualizar posición del pájaro
         graph["bird"]["transform"] = (
             tr.translate(0, window.bird_pos, 0)
