@@ -1,5 +1,6 @@
 import pyglet
 import numpy as np
+import random
 from pyglet.gl import *
 from pyglet.window import key
 
@@ -15,6 +16,8 @@ WIDTH = 1000
 HEIGHT = 1000
 GRAVITY = -1.5
 JUMP = 0.75
+
+
 
 #Controller
 class Controller(pyglet.window.Window):
@@ -119,6 +122,68 @@ void main() {
                 scale = [2, 2, 0]
     )
 
+
+    # Almacenaremos las tuberías que crearemos en una lista
+    pipes = []
+    pipe_timer = 0
+    pipe_interval = 2.5  # segundos
+    pipe_speed = 0.8
+
+    # Función para crear el nodo superior e inferior de las tuberías que iremos usando
+    def create_pipe():
+
+        # Asignamos una id a cada tubería
+        pipe_id = f"pipe_{len(pipes)}"
+
+        print(pipe_id)
+
+        # Espacio aleatorio entre la tubería superior e inferior
+        gap_size = random.uniform(0.3, 1.0)
+
+        # Rango permitido para el centro del gap
+        min_center = -0.6 + gap_size / 2
+        max_center = 0.6 - gap_size / 2
+
+        gap_center = random.uniform(min_center, max_center)
+
+
+        # Posición de las tuberías (centro)
+        top_pipe_y = gap_center + gap_size / 2 + 1  # su centro está 1 unidad arriba de su extremo inferior
+        bottom_pipe_y = gap_center - gap_size / 2 - 1  # su centro está 1 unidad abajo de su extremo superior
+
+
+
+        # Desplazamientos desde el centro original (0)
+        top_displacement = top_pipe_y
+        bottom_displacement = bottom_pipe_y
+
+        # Habrá un nodo padre que contenga a la tubería superior e inferior
+        graph.add_node(pipe_id, attach_to="scene", transform=tr.identity())
+
+        # Inferior
+        graph.add_node(f"{pipe_id}_bot",
+            attach_to=pipe_id,
+            mesh=quad,
+            pipeline=pipeline,
+            texture=Texture(root + "/assets/pipe.png"),
+            position=[1.2, bottom_displacement, -0.2],
+            scale=[0.22, 2, 1],
+            rotation=[0, 0, np.pi]  # rotado para que mire hacia arriba
+
+        )
+
+        # Superior
+        graph.add_node(f"{pipe_id}_top",
+            attach_to=pipe_id,
+            mesh=quad,
+            pipeline=pipeline,
+            texture=Texture(root + "/assets/pipe.png"),
+            position=[1.2, top_displacement, -0.1],
+            scale=[0.22, 2, 1]
+        )
+
+        pipes.append({"id": pipe_id, "x": 1})
+
     @window.event
     def on_draw():
         glEnable(GL_DEPTH_TEST)
@@ -140,8 +205,16 @@ void main() {
 
 
     def update(dt):
+        global pipe_timer
         # El tiempo queda guardado en la variable window.time
         window.time += dt
+        # Tiempo para que salga una nueva tubería
+        pipe_timer += dt
+        # Solo generar si está jugando
+        if window.gameState == 1 and pipe_timer >= pipe_interval:
+            create_pipe()
+            pipe_timer = 0
+
 
         # Actualizar velocidad y posición si el juego ha empezado
         if (window.gameState != 0):  
@@ -157,7 +230,7 @@ void main() {
                 )
 
             # Movimiento del fondo
-            speed = 0.2*dt
+            speed = 0.2 * dt
             window.back1 -= speed
             window.back2 -= speed
 
@@ -177,8 +250,7 @@ void main() {
         graph["bird"]["transform"] = (
             tr.translate(0, window.bird_pos, 0)
         )
-        
-
+    
 
         # Si el pájaro toca el techo o suelo, pierde
         if (window.bird_pos >= 0.95 or window.bird_pos <= -0.95):
@@ -187,12 +259,27 @@ void main() {
 
         graph.update()
 
+        if window.gameState == 1:
+            # Movemos las tuberías
+            #print(pipes)
+            for pipe in pipes:
+                #print(pipe)
+                pipe["x"] -= pipe_speed * dt
+                graph[pipe["id"]]["transform"] = tr.translate(pipe["x"], 0, -0.1)
+
+
+            """
+            # Eliminamos las tuberías fuera de pantalla
+            print("pipes: " + str(pipes[:]))
+            for pipe in pipes[:]:
+                print(pipe)
+                if pipe["x"] < -4:
+                    
+                    graph.remove_node(pipe["id"])
+                    pipes.remove(pipe)
+
+            """
 
 
     pyglet.clock.schedule_interval(update, 1/60)
     pyglet.app.run()
-
-    
-
-    
-    
